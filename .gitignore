@@ -1,0 +1,342 @@
+# ========================================
+# Zanvar Group Analytics Chatbot .gitignore
+# ========================================
+
+# =====================================
+# Python Backend Files
+# =====================================
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+pyvenv.cfg
+
+# Environment variables and secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+.flaskenv
+config.py
+secrets.json
+
+# Testing
+.tox/
+.nox/
+.coverage
+.pytest_cache/
+cover/
+htmlcov/
+.coverage.*
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# PyCharm
+.idea/
+
+# =====================================
+# Node.js Frontend Files
+# =====================================
+
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output
+
+# Build outputs
+build/
+dist/
+out/
+
+# Next.js build output
+.next
+
+# Nuxt.js build / generate output
+.nuxt
+
+# React build
+frontend/build/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Yarn Integrity file
+.yarn-integrity
+
+# parcel-bundler cache
+.cache
+.parcel-cache
+
+# =====================================
+# Data and Upload Files
+# =====================================
+
+# Uploaded data files (keep sample data)
+backend/uploads/
+!backend/uploads/.gitkeep
+
+# Generated charts and visualizations
+backend/generated_charts/
+!backend/generated_charts/.gitkeep
+
+# Sample data (uncomment if you want to ignore)
+# sample_data/
+
+# Large data files
+*.csv
+*.xlsx
+*.xls
+*.json
+!package.json
+!package-lock.json
+!frontend/package.json
+!frontend/package-lock.json
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# =====================================
+# Logs and Debug Files
+# =====================================
+
+# Application logs
+*.log
+logs/
+
+# Runtime logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Debug files
+*.debug
+*.trace
+
+# =====================================
+# Operating System Files
+# =====================================
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# =====================================
+# IDE and Editor Files
+# =====================================
+
+# Visual Studio Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# JetBrains IDEs
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+.netrwhist
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# =====================================
+# Temporary and Cache Files
+# =====================================
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+~*
+
+# Cache files
+.cache/
+*.cache
+
+# Sass cache
+.sass-cache/
+
+# ESLint cache
+.eslintcache
+
+# =====================================
+# AI and API Keys
+# =====================================
+
+# API configuration files
+api_keys.json
+api_config.py
+credentials.json
+
+# Google AI API files
+service-account-key.json
+google-credentials.json
+
+# =====================================
+# Deployment and Production
+# =====================================
+
+# Docker
+Dockerfile.local
+docker-compose.override.yml
+
+# Heroku
+.env.production
+
+# Vercel
+.vercel
+
+# Netlify
+.netlify
+
+# =====================================
+# Project Specific
+# =====================================
+
+# Generated documentation
+docs/_build/
+
+# Backup files
+*.backup
+*.bak
+
+# Archive files
+*.zip
+*.rar
+*.tar.gz
+*.7z
+
+# Performance monitoring
+.clinic/
+.nyc_output/
+
+# Local configuration
+local_config.py
+local_settings.json
+
+# =====================================
+# Analytics and Monitoring
+# =====================================
+
+# Monitoring data
+monitoring/
+metrics/
+
+# Error tracking
+error_logs/
+crash_reports/
+
