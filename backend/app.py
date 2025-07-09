@@ -74,22 +74,33 @@ else:
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def safe_json(obj):
+    if isinstance(obj, float) and (pd.isna(obj) or math.isnan(obj)):
+        return None
+    if isinstance(obj, (int, float, str, bool)) or obj is None:
+        return obj
+    if isinstance(obj, dict):
+        return {k: safe_json(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [safe_json(x) for x in obj]
+    return str(obj)
+
 def process_csv_file(filepath):
     """Process CSV file and return basic info"""
     try:
         df = pd.read_csv(filepath)
-        
         # Convert pandas data types to JSON serializable format
         data_types = {col: str(dtype) for col, dtype in df.dtypes.items()}
         null_counts = {col: int(count) for col, count in df.isnull().sum().items()}
-        
+        numeric_summary = df.describe().to_dict() if len(df.select_dtypes(include=['number']).columns) > 0 else {}
+        numeric_summary = safe_json(numeric_summary)
         info = {
             'shape': df.shape,
             'columns': df.columns.tolist(),
             'data_types': data_types,
             'sample_data': df.head().to_dict('records'),
             'null_counts': null_counts,
-            'numeric_summary': df.describe().to_dict() if len(df.select_dtypes(include=['number']).columns) > 0 else {}
+            'numeric_summary': numeric_summary
         }
         return info
     except Exception as e:
@@ -99,18 +110,18 @@ def process_excel_file(filepath):
     """Process Excel file and return basic info"""
     try:
         df = pd.read_excel(filepath)
-        
         # Convert pandas data types to JSON serializable format
         data_types = {col: str(dtype) for col, dtype in df.dtypes.items()}
         null_counts = {col: int(count) for col, count in df.isnull().sum().items()}
-        
+        numeric_summary = df.describe().to_dict() if len(df.select_dtypes(include=['number']).columns) > 0 else {}
+        numeric_summary = safe_json(numeric_summary)
         info = {
             'shape': df.shape,
             'columns': df.columns.tolist(),
             'data_types': data_types,
             'sample_data': df.head().to_dict('records'),
             'null_counts': null_counts,
-            'numeric_summary': df.describe().to_dict() if len(df.select_dtypes(include=['number']).columns) > 0 else {}
+            'numeric_summary': numeric_summary
         }
         return info
     except Exception as e:
