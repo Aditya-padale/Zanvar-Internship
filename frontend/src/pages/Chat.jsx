@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { sendChatMessage } from '../api';
+import ReactMarkdown from 'react-markdown';
 
 const AI_AVATAR = "https://lh3.googleusercontent.com/aida-public/AB6AXuB0wTJWIrhQLopY-NST5feHfVDAW3zt9fBCsOqMH7dKm-alsHLUuB-obdVAvz9OW9yvwXShnjqyZPb3peYkyp_0qmg-JRqwrsXXlIF5QsSKJlMOL5Fwvlq-uEZqhXC1WuviG7Cm9F1vDsxt6qlUw8djKsMXcvB6-dERLimymkLwinEZVAi8UyU6VUxAWxkkeODlqWnUihH0ssmhexrOAhW6FKxh1Ywgc3l4luHOALFzb0_UBMalrmXPiJsrnZUXOGuZEBbt3TBqXgY";
 const USER_AVATAR = "https://lh3.googleusercontent.com/aida-public/AB6AXuCowg1gvXl3EKMwpawwVdqdaWLKixCbSbj3seHqsvId_ih8u-jW9o68SBfvHmr_GgkeWydQ4NMVasHaV6a_vmnEGFgC6UeBQs01IfTSXtrQkuAjUDYu2aR7AU01mCFwoUd4sJx0FgMX4bTLLXnfN30fJGKtY-qnwaowq5MAnUMC42DHZ1jpZkSzUGDjRX_NVQte3tUtxPscdaZopJZly8xlDcVtPCXjxg09Jo97XKwNvjcGvp0VaL4ZrRzxRja7mxJm7j5gcKkxURA";
@@ -151,7 +152,20 @@ const Chat = () => {
                   ></div>
                   <div className={`flex flex-1 flex-col gap-1 ${msg.sender === "user" ? "items-end" : "items-start"}`}>
                     <p className={`text-[#9daebe] text-[13px] font-normal leading-normal max-w-[360px] ${msg.sender === "user" ? "text-right" : ""}`}>{msg.name}</p>
-                    <p className={`text-base font-normal leading-normal flex max-w-[360px] rounded-xl px-4 py-3 ${msg.sender === "user" ? "bg-[#dce8f3] text-[#141a1f]" : "bg-[#2b3640] text-white"}`}>{msg.text}</p>
+                    {msg.sender === "ai" ? (
+                      <div className="text-base font-normal leading-normal rounded-xl px-4 py-3 bg-[#2b3640] text-white text-left break-words whitespace-pre-line inline-block max-w-full" style={{ minWidth: '60px', maxWidth: '90vw', wordBreak: 'break-word' }}>
+                        <ReactMarkdown
+                          components={{
+                            ul: ({node, ...props}) => <ul style={{ paddingLeft: 20, margin: 0 }} {...props} />,
+                            ol: ({node, ...props}) => <ol style={{ paddingLeft: 20, margin: 0 }} {...props} />,
+                            li: ({node, ...props}) => <li style={{ marginBottom: 4 }} {...props} />,
+                            p: ({node, ...props}) => <p style={{ margin: 0 }} {...props} />,
+                          }}
+                        >{msg.text}</ReactMarkdown>
+                      </div>
+                    ) : (
+                      <p className="text-base font-normal leading-normal rounded-xl px-4 py-3 bg-[#dce8f3] text-[#141a1f] inline-block max-w-full" style={{ minWidth: '60px', maxWidth: '90vw', wordBreak: 'break-word' }}>{msg.text}</p>
+                    )}
                   </div>
                 </div>
               ))}
@@ -171,7 +185,8 @@ const Chat = () => {
                 <div className="flex w-full flex-1 items-stretch rounded-xl h-full">
                   <input
                     placeholder="Ask a question about your data..."
-                    className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-xl text-white focus:outline-0 focus:ring-0 border-none bg-[#2b3640] focus:border-none h-full placeholder:text-[#9daebe] px-4 rounded-r-none border-r-0 pr-2 text-base font-normal leading-normal"
+                    className="form-input flex w-full min-w-0 flex-1 resize-y overflow-hidden rounded-xl text-white focus:outline-0 focus:ring-0 border-none bg-[#2b3640] focus:border-none h-full placeholder:text-[#9daebe] px-4 rounded-r-none border-r-0 pr-2 text-base font-normal leading-normal"
+                    style={{ minHeight: '44px', maxHeight: '200px' }}
                     value={input}
                     onChange={e => setInput(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) handleSend(e); }}
