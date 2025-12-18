@@ -600,17 +600,56 @@ class SuperIntelligentAnalyzer:
         
         # Determine chart preference
         chart_keywords = {
-            'pie': ['pie', 'proportion', 'percentage', 'distribution', 'share'],
-            'bar': ['bar', 'compare', 'ranking', 'top', 'highest', 'lowest'],
-            'line': ['line', 'trend', 'over time', 'timeline', 'progression'],
-            'scatter': ['scatter', 'correlation', 'relationship', 'versus'],
-            'heatmap': ['heatmap', 'correlation', 'matrix', 'heat map']
+            'pie': ['pie', 'proportion', 'percentage', 'distribution', 'share', 'donut'],
+            'bar': ['bar', 'compare', 'ranking', 'top', 'highest', 'lowest', 'column'],
+            'line': ['line', 'trend', 'over time', 'timeline', 'progression', 'time series'],
+            'area': ['area', 'filled', 'stacked area', 'area chart', 'filled line', 'cumulative'],
+            'scatter': ['scatter', 'correlation', 'relationship', 'versus', 'plot points'],
+            'heatmap': ['heatmap', 'correlation', 'matrix', 'heat map', 'intensity'],
+            'box': ['box', 'boxplot', 'whisker', 'quartile', 'distribution'],
+            'histogram': ['histogram', 'frequency', 'bins', 'distribution'],
+            'violin': ['violin', 'density', 'violin plot'],
+            'radar': ['radar', 'spider', 'polar', 'radar chart'],
+            'bubble': ['bubble', 'bubble chart', 'size comparison'],
+            'candlestick': ['candlestick', 'ohlc', 'stock', 'financial'],
+            'waterfall': ['waterfall', 'cascade', 'bridge', 'contribution'],
+            'funnel': ['funnel', 'conversion', 'stages', 'funnel chart'],
+            'gauge': ['gauge', 'meter', 'speedometer', 'dial'],
+            'treemap': ['treemap', 'hierarchy', 'nested', 'tree map'],
+            'sunburst': ['sunburst', 'hierarchical', 'nested pie', 'multi-level']
         }
         
+        # Check for chart preferences with priority order (most specific first)
+        chart_preference_found = False
+        
+        # First check for compound/specific chart types
         for chart_type, keywords in chart_keywords.items():
-            if any(keyword in question_lower for keyword in keywords):
-                intent_analysis['chart_preference'] = chart_type
+            for keyword in keywords:
+                if keyword in question_lower:
+                    # Special handling for area charts to prevent line chart confusion
+                    if chart_type == 'area' and ('area' in keyword):
+                        intent_analysis['chart_preference'] = chart_type
+                        chart_preference_found = True
+                        break
+                    # For other specific multi-word keywords, check exact match
+                    elif len(keyword.split()) > 1 and keyword in question_lower:
+                        intent_analysis['chart_preference'] = chart_type
+                        chart_preference_found = True
+                        break
+                    # For single-word keywords, ensure they're not part of compound terms
+                    elif len(keyword.split()) == 1 and f' {keyword} ' in f' {question_lower} ':
+                        intent_analysis['chart_preference'] = chart_type
+                        chart_preference_found = True
+                        break
+            if chart_preference_found:
                 break
+        
+        # Fallback to simple matching if no specific match found
+        if not chart_preference_found:
+            for chart_type, keywords in chart_keywords.items():
+                if any(keyword in question_lower for keyword in keywords):
+                    intent_analysis['chart_preference'] = chart_type
+                    break
         
         # Extract numbers for count requests
         numbers = re.findall(r'\d+', question)
@@ -674,8 +713,24 @@ class SuperIntelligentAnalyzer:
             2. Temporal scope (overall, monthly, weekly, daily, specific months)
             3. Whether month-wise or time-based grouping is requested
             4. Specific months mentioned (if any)
-            5. Chart type preference (pie, bar, line, etc.)
+            5. Chart type preference - Choose from these supported types:
+               • pie: for distributions, proportions, percentages, shares
+               • area: for filled charts, stacked areas, cumulative views
+               • line: for trends, time series, progressions
+               • bar: for comparisons, rankings, top/bottom lists
+               • scatter: for correlations, relationships, point plots
+               • heatmap: for correlation matrices, intensity maps
+               • box: for distributions, quartiles, outliers
+               • histogram: for frequency distributions, data spread
+               • violin: for density distributions
+               • radar: for multi-dimensional comparisons
+               • bubble: for 3-dimensional scatter plots
+               • waterfall: for step-by-step changes
+               • funnel: for conversion processes
+               • treemap: for hierarchical data
+               • sunburst: for nested hierarchical data
             6. Requested count/limit for results
+            7. Special requirements (stacked, grouped, comparative, etc.)
             
             Respond in JSON format with these fields:
             {{
@@ -683,8 +738,9 @@ class SuperIntelligentAnalyzer:
                 "temporal_scope": "string", 
                 "grouping_requested": boolean,
                 "specific_months": ["array of month names"],
-                "chart_preference": "string",
+                "chart_preference": "string (from supported types above)",
                 "requested_count": number,
+                "special_requirements": ["stacked", "grouped", "comparative"],
                 "confidence": number
             }}
             """
@@ -715,8 +771,21 @@ class SuperIntelligentAnalyzer:
                     enhanced['temporal_scope'] = 'monthly'
                     enhanced['grouping_requested'] = True
                 
-                if 'pie' in text:
+                # Enhanced chart type detection from API response
+                if 'area' in text or 'filled' in text or 'stacked' in text:
+                    enhanced['chart_preference'] = 'area'
+                elif 'pie' in text:
                     enhanced['chart_preference'] = 'pie'
+                elif 'line' in text or 'trend' in text:
+                    enhanced['chart_preference'] = 'line'
+                elif 'scatter' in text or 'correlation' in text:
+                    enhanced['chart_preference'] = 'scatter'
+                elif 'heatmap' in text or 'matrix' in text:
+                    enhanced['chart_preference'] = 'heatmap'
+                elif 'box' in text or 'boxplot' in text:
+                    enhanced['chart_preference'] = 'box'
+                elif 'histogram' in text or 'frequency' in text:
+                    enhanced['chart_preference'] = 'histogram'
                 elif 'bar' in text:
                     enhanced['chart_preference'] = 'bar'
                 elif 'line' in text:
@@ -775,19 +844,28 @@ class SuperIntelligentAnalyzer:
             count = intent.get('requested_count', 10)
             
             if chart_type == 'auto':
-                # Intelligent chart type selection
-                if any(word in question.lower() for word in ['distribution', 'proportion', 'breakdown']):
+                # Enhanced intelligent chart type selection
+                question_lower = question.lower()
+                if any(word in question_lower for word in ['distribution', 'proportion', 'breakdown', 'share']):
                     chart_type = 'pie'
-                elif any(word in question.lower() for word in ['trend', 'over time', 'progression']):
+                elif any(word in question_lower for word in ['area', 'filled', 'cumulative', 'stacked']):
+                    chart_type = 'area'
+                elif any(word in question_lower for word in ['trend', 'over time', 'progression', 'timeline']):
                     chart_type = 'line'
-                elif any(word in question.lower() for word in ['compare', 'ranking', 'top']):
+                elif any(word in question_lower for word in ['compare', 'ranking', 'top', 'highest', 'lowest']):
                     chart_type = 'bar'
+                elif any(word in question_lower for word in ['correlation', 'relationship', 'versus']):
+                    chart_type = 'scatter'
+                elif any(word in question_lower for word in ['heatmap', 'matrix', 'intensity']):
+                    chart_type = 'heatmap'
                 else:
                     chart_type = 'bar'  # Default
             
-            # Generate the appropriate chart
+            # Generate the appropriate chart with enhanced routing
             if chart_type == 'pie':
                 return self._create_advanced_pie_chart(question, count)
+            elif chart_type == 'area':
+                return self._create_advanced_area_chart(question)
             elif chart_type == 'line':
                 return self._create_advanced_line_chart(question)
             elif chart_type == 'bar':
@@ -796,8 +874,30 @@ class SuperIntelligentAnalyzer:
                 return self._create_correlation_heatmap(question)
             elif chart_type == 'scatter':
                 return self._create_scatter_plot(question)
+            elif chart_type in ['box', 'boxplot']:
+                return self._create_box_plot(question)
+            elif chart_type in ['histogram', 'frequency']:
+                return self._create_histogram(question)
+            elif chart_type in ['violin']:
+                return self._create_violin_plot(question)
+            elif chart_type in ['radar', 'spider']:
+                return self._create_radar_chart(question)
+            elif chart_type in ['bubble']:
+                return self._create_bubble_chart(question)
+            elif chart_type in ['waterfall']:
+                return self._create_waterfall_chart(question)
+            elif chart_type in ['funnel']:
+                return self._create_funnel_chart(question)
+            elif chart_type in ['treemap']:
+                return self._create_treemap(question)
+            elif chart_type in ['sunburst']:
+                return self._create_sunburst_chart(question)
             else:
-                return self._create_advanced_bar_chart(question, count)
+                # Fallback with suggestion for unsupported chart types
+                if chart_type in ['gauge', 'candlestick']:
+                    return f"📊 **Chart Type '{chart_type}' Coming Soon!**\n\nCurrently supported chart types:\n• Pie Charts\n• Area Charts (including stacked)\n• Line Charts\n• Bar Charts\n• Scatter Plots\n• Heatmaps\n\nFor now, I'll create a bar chart for your data:\n\n" + self._create_advanced_bar_chart(question, count)
+                else:
+                    return self._create_advanced_bar_chart(question, count)
                 
         except Exception as e:
             logger.error(f"Visualization error: {e}")
@@ -915,10 +1015,12 @@ class SuperIntelligentAnalyzer:
             
             response += f"📊 **Interactive Visualization:**\n\n"
             
-            # Provide multiple format options for better compatibility
-            response += f'<img src="data:image/png;base64,{img_base64}" alt="Pie Chart Analysis" style="max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0;" />\n\n'
-            response += f"![Pie Chart](data:image/png;base64,{img_base64})\n\n"
-            response += f"*Chart saved as: {chart_filename}*"
+            # Use single image format - HTML img with fallback to base64
+            chart_url = f"http://localhost:5000/api/charts/{chart_filename}"
+            
+            response += f'<img src="{chart_url}" alt="Pie Chart Analysis" style="max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0; display: block;" onerror="this.onerror=null; this.src=\'data:image/png;base64,{img_base64}\';" />\n\n'
+            
+            response += f"*📁 Chart saved as: {chart_filename}*"
             
             return response
             
@@ -982,6 +1084,18 @@ class SuperIntelligentAnalyzer:
             img_bytes = fig.to_image(format="png", width=1200, height=max(600, len(defect_names) * 35))
             img_base64 = base64.b64encode(img_bytes).decode()
             
+            # Save chart file
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            chart_filename = f"bar_chart_{timestamp}.png"
+            chart_path = os.path.join("generated_charts", chart_filename)
+            
+            # Ensure directory exists
+            os.makedirs("generated_charts", exist_ok=True)
+            
+            # Save the chart
+            with open(chart_path, "wb") as f:
+                f.write(img_bytes)
+            
             # Generate comprehensive analysis
             total_rejections = sum(defect_counts)
             top_3_percentage = sum(defect_counts[:3]) / total_rejections * 100
@@ -1022,8 +1136,14 @@ class SuperIntelligentAnalyzer:
             if positioning_defects:
                 response += f"• **Positioning Accuracy** ({len(positioning_defects)} types): Check fixture setup and machine calibration\n"
             
-            response += f"\n📊 **Interactive Visualization:**\n"
-            response += f"![Chart](data:image/png;base64,{img_base64})"
+            response += f"\n📊 **Interactive Visualization:**\n\n"
+            
+            # Use single image format - HTML img with fallback to base64
+            chart_url = f"http://localhost:5000/api/charts/{chart_filename}"
+            
+            response += f'<img src="{chart_url}" alt="Bar Chart Analysis" style="max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0; display: block;" onerror="this.onerror=null; this.src=\'data:image/png;base64,{img_base64}\';" />\n\n'
+            
+            response += f"*📁 Chart saved as: {chart_filename}*"
             
             return response
             
@@ -1119,6 +1239,18 @@ class SuperIntelligentAnalyzer:
             img_bytes = fig.to_image(format="png", width=1200, height=800)
             img_base64 = base64.b64encode(img_bytes).decode()
             
+            # Save chart file
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            chart_filename = f"line_chart_{timestamp}.png"
+            chart_path = os.path.join("generated_charts", chart_filename)
+            
+            # Ensure directory exists
+            os.makedirs("generated_charts", exist_ok=True)
+            
+            # Save the chart
+            with open(chart_path, "wb") as f:
+                f.write(img_bytes)
+            
             # Generate comprehensive trend analysis
             latest_rejections = monthly_data['Total Rej Qty.'].iloc[-1]
             first_rejections = monthly_data['Total Rej Qty.'].iloc[0]
@@ -1178,13 +1310,200 @@ class SuperIntelligentAnalyzer:
             response += f"• **Monitoring Frequency**: {'Daily' if volatility > 2 else 'Weekly'} quality reviews recommended\n"
             response += f"• **Focus Areas**: Target months/periods with consistently higher rejection rates\n\n"
             
-            response += f"📈 **Interactive Trend Visualization:**\n"
-            response += f"![Chart](data:image/png;base64,{img_base64})"
+            response += f"📈 **Interactive Trend Visualization:**\n\n"
+            
+            # Use single image format - HTML img with fallback to base64
+            chart_url = f"http://localhost:5000/api/charts/{chart_filename}"
+            
+            response += f'<img src="{chart_url}" alt="Line Chart Analysis" style="max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0; display: block;" onerror="this.onerror=null; this.src=\'data:image/png;base64,{img_base64}\';" />\n\n'
+            
+            response += f"*📁 Chart saved as: {chart_filename}*"
             
             return response
             
         except Exception as e:
             return f"❌ **Error creating advanced trend chart:** {str(e)}"
+    
+    def _create_advanced_area_chart(self, question: str) -> str:
+        """Create advanced area chart with stacking and cumulative options"""
+        try:
+            if 'Date' not in self.df.columns:
+                return "❌ **Date data not available for area chart analysis.**"
+            
+            # Check if stacked area is requested
+            is_stacked = any(word in question.lower() for word in ['stacked', 'stack', 'cumulative', 'breakdown'])
+            
+            # Prepare data for area chart
+            monthly_data = self.df.groupby(self.df['Date'].dt.to_period('M')).agg({
+                'Total Rej Qty.': 'sum',
+                'Inspected Qty.': 'sum'
+            }).reset_index()
+            
+            monthly_data['Date'] = monthly_data['Date'].dt.to_timestamp()
+            monthly_data['Accepted_Qty'] = monthly_data['Inspected Qty.'] - monthly_data['Total Rej Qty.']
+            
+            # Create area chart
+            fig = go.Figure()
+            
+            if is_stacked and len(self.defect_columns) > 0:
+                # Create stacked area chart for defect types
+                defect_monthly = self.df.groupby(self.df['Date'].dt.to_period('M'))[self.defect_columns].sum().reset_index()
+                defect_monthly['Date'] = defect_monthly['Date'].dt.to_timestamp()
+                
+                # Define colors for different defect types
+                colors = ['#e74c3c', '#f39c12', '#9b59b6', '#3498db', '#2ecc71', '#e67e22', '#34495e', '#95a5a6']
+                
+                # Add area traces for each defect type
+                for i, defect in enumerate(self.defect_columns[:8]):  # Limit to 8 types for clarity
+                    if defect_monthly[defect].sum() > 0:  # Only include defects with data
+                        fig.add_trace(go.Scatter(
+                            x=defect_monthly['Date'],
+                            y=defect_monthly[defect],
+                            mode='lines',
+                            stackgroup='defects',
+                            name=defect.replace('_', ' ').title(),
+                            line=dict(width=0),
+                            fillcolor=colors[i % len(colors)],
+                            hovertemplate=f'<b>{defect.replace("_", " ").title()}</b><br>' +
+                                        'Month: %{x}<br>' +
+                                        'Count: %{y:,}<br>' +
+                                        '<extra></extra>'
+                        ))
+                
+                chart_title = '🏔️ Stacked Area Chart: Defect Type Distribution Over Time'
+                analysis_type = "stacked defect breakdown"
+                
+            else:
+                # Create simple area chart for total rejections vs accepted
+                fig.add_trace(go.Scatter(
+                    x=monthly_data['Date'],
+                    y=monthly_data['Accepted_Qty'],
+                    mode='lines',
+                    stackgroup='quality',
+                    name='Accepted Quantity',
+                    line=dict(width=0),
+                    fillcolor='rgba(46, 204, 113, 0.7)',
+                    hovertemplate='<b>Accepted Products</b><br>' +
+                                'Month: %{x}<br>' +
+                                'Count: %{y:,}<br>' +
+                                '<extra></extra>'
+                ))
+                
+                fig.add_trace(go.Scatter(
+                    x=monthly_data['Date'],
+                    y=monthly_data['Total Rej Qty.'],
+                    mode='lines',
+                    stackgroup='quality',
+                    name='Rejected Quantity',
+                    line=dict(width=0),
+                    fillcolor='rgba(231, 76, 60, 0.8)',
+                    hovertemplate='<b>Rejected Products</b><br>' +
+                                'Month: %{x}<br>' +
+                                'Count: %{y:,}<br>' +
+                                '<extra></extra>'
+                ))
+                
+                chart_title = '🏔️ Area Chart: Quality Distribution Over Time'
+                analysis_type = "quality distribution"
+            
+            # Update layout
+            fig.update_layout(
+                title={
+                    'text': chart_title,
+                    'x': 0.5,
+                    'xanchor': 'center',
+                    'font': {'size': 20, 'color': '#2E86AB'}
+                },
+                xaxis_title='Month',
+                yaxis_title='Quantity',
+                height=600,
+                width=1200,
+                hovermode='x unified',
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1.02,
+                    xanchor="right",
+                    x=1
+                )
+            )
+            
+            # Convert to image
+            img_bytes = fig.to_image(format="png", width=1200, height=600)
+            img_base64 = base64.b64encode(img_bytes).decode()
+            
+            # Save chart file
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            chart_filename = f"area_chart_{timestamp}.png"
+            chart_path = os.path.join("generated_charts", chart_filename)
+            
+            # Ensure directory exists
+            os.makedirs("generated_charts", exist_ok=True)
+            
+            # Save the chart
+            with open(chart_path, "wb") as f:
+                f.write(img_bytes)
+            
+            # Generate analysis response
+            total_inspected = monthly_data['Inspected Qty.'].sum()
+            total_rejected = monthly_data['Total Rej Qty.'].sum()
+            total_accepted = total_inspected - total_rejected
+            acceptance_rate = (total_accepted / total_inspected) * 100
+            
+            response = f"🏔️ **Advanced Area Chart Analysis: {analysis_type.title()}**\n\n"
+            
+            # Overall statistics
+            response += f"📊 **Overall Quality Metrics:**\n"
+            response += f"• **Total Inspected**: {total_inspected:,} units\n"
+            response += f"• **Total Accepted**: {total_accepted:,} units ({acceptance_rate:.2f}%)\n"
+            response += f"• **Total Rejected**: {total_rejected:,} units ({100-acceptance_rate:.2f}%)\n"
+            response += f"• **Analysis Period**: {len(monthly_data)} months of data\n\n"
+            
+            if is_stacked and len(self.defect_columns) > 0:
+                # Defect-specific analysis
+                defect_totals = self.df[self.defect_columns].sum().sort_values(ascending=False)
+                response += f"🔍 **Top Defect Categories:**\n"
+                for i, (defect, count) in enumerate(defect_totals.head(5).items()):
+                    percentage = (count / total_rejected) * 100
+                    response += f"{i+1}. **{defect.replace('_', ' ').title()}**: {count:,} ({percentage:.1f}%)\n"
+                response += "\n"
+            
+            # Trend insights
+            latest_month = monthly_data.iloc[-1]
+            first_month = monthly_data.iloc[0]
+            
+            if len(monthly_data) > 1:
+                trend_change = ((latest_month['Total Rej Qty.'] - first_month['Total Rej Qty.']) / first_month['Total Rej Qty.']) * 100
+                response += f"📈 **Trend Analysis:**\n"
+                response += f"• **Period Change**: {abs(trend_change):.1f}% {'increase' if trend_change > 0 else 'decrease'} in rejections\n"
+                response += f"• **Latest Month**: {latest_month['Total Rej Qty.']:,} rejections\n"
+                response += f"• **Trend Direction**: {'📈 Improving' if trend_change < -5 else '📉 Worsening' if trend_change > 5 else '➡️ Stable'}\n\n"
+            
+            # Recommendations based on area chart insights
+            response += f"💡 **Area Chart Insights:**\n"
+            if is_stacked:
+                response += f"• **Visual Benefits**: Stacked areas show relative contribution of each defect type\n"
+                response += f"• **Focus Areas**: Address the largest area segments for maximum impact\n"
+            else:
+                response += f"• **Visual Benefits**: Area chart emphasizes volume and cumulative impact\n"
+                response += f"• **Quality Ratio**: Visual representation of accept/reject proportions\n"
+            
+            response += f"• **Monitoring**: Use area charts to track cumulative quality trends\n"
+            response += f"• **Planning**: Ideal for capacity and quality planning visualizations\n\n"
+            
+            response += f"🏔️ **Interactive Area Visualization:**\n\n"
+            
+            # Use single image format - HTML img with fallback to base64
+            chart_url = f"http://localhost:5000/api/charts/{chart_filename}"
+            
+            response += f'<img src="{chart_url}" alt="Area Chart Analysis" style="max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0; display: block;" onerror="this.onerror=null; this.src=\'data:image/png;base64,{img_base64}\';" />\n\n'
+            
+            response += f"*📁 Chart saved as: {chart_filename}*"
+            
+            return response
+            
+        except Exception as e:
+            return f"❌ **Error creating advanced area chart:** {str(e)}"
     
     def answer_question(self, question: str) -> str:
         """Main entry point for answering questions with super intelligence"""

@@ -170,9 +170,21 @@ const Chat = () => {
                                   height: 'auto', 
                                   borderRadius: '8px', 
                                   margin: '10px 0',
-                                  display: 'block'
+                                  display: 'block',
+                                  border: '1px solid rgba(255,255,255,0.1)'
                                 }} 
                                 alt={props.alt || "Chart"}
+                                loading="lazy"
+                                onError={(e) => {
+                                  console.log('Image failed to load:', e.target.src);
+                                  // If URL-based image fails, try to find base64 fallback
+                                  if (!e.target.src.startsWith('data:')) {
+                                    console.log('Attempting fallback...');
+                                  }
+                                }}
+                                onLoad={() => {
+                                  console.log('Image loaded successfully');
+                                }}
                               />
                             ),
                           }}

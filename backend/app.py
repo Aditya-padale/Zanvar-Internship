@@ -189,6 +189,23 @@ def upload_file():
     
     return jsonify({'error': 'File type not allowed'}), 400
 
+@app.route('/api/charts/<filename>')
+def serve_chart(filename):
+    """Serve generated chart files"""
+    try:
+        # Security check - only allow PNG files with specific naming pattern
+        if not filename.endswith('.png') or not filename.startswith(('pie_chart_', 'bar_chart_', 'line_chart_', 'scatter_plot_')):
+            return jsonify({'error': 'Invalid file'}), 404
+        
+        chart_path = os.path.join('generated_charts', secure_filename(filename))
+        
+        if os.path.exists(chart_path):
+            return send_file(chart_path, mimetype='image/png')
+        else:
+            return jsonify({'error': 'Chart not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/chat', methods=['POST'])
 def chat():
     data = request.get_json()
