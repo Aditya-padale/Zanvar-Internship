@@ -1,14 +1,6 @@
-import sys
 import os
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-from flask import Flask, request, jsonify
 import json
-import tempfile
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
+from datetime import datetime
 
 try:
     import google.generativeai as genai
@@ -16,9 +8,6 @@ try:
 except ImportError:
     genai = None
     HAS_GOOGLE_AI = False
-    print("Warning: Google AI not available, using fallback mode")
-
-app = Flask(__name__)
 
 # Conversation memory to track context
 conversation_memory = {
@@ -157,29 +146,61 @@ def get_file_context(files):
     return '\n'.join(context_parts) if context_parts else "File information not available."
 
 def handler(request):
-    if request.method != 'POST':
-        return jsonify({'error': 'Method not allowed'}), 405
+    """Lightweight chat handler for Vercel"""
+    method = request.get('method') if isinstance(request, dict) else getattr(request, 'method', 'GET')
+    
+    if method != 'POST':
+        return {
+            'statusCode': 405,
+            'body': json.dumps({'error': 'Method not allowed'})
+        }
     
     try:
-        data = request.get_json()
+        # Parse request body
+        if hasattr(request, 'get_json'):
+            data = request.get_json()
+        else:
+            # Handle Vercel's event format
+            body = request.get('body', '{}') if isinstance(request, dict) else '{}'
+            data = json.loads(body)
+        
         if not data or 'message' not in data:
-            return jsonify({'error': 'No message provided'}), 400
+            return {
+                'statusCode': 400,
+                'body': json.dumps({'error': 'No message provided'})
+            }
         
         message = data['message']
-        files = data.get('files', [])  # Optional file context
+        files = data.get('files', [])
         
         # Process the query
         result = process_user_query(message, files)
         
-        return jsonify({
-            'success': True,
-            'response': result['response'],
-            'timestamp': os.environ.get('VERCEL_DEPLOYMENT_ID', 'local')
-        })
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type'
+            },
+            'body': json.dumps({
+                'success': True,
+                'response': result['response'],
+                'timestamp': datetime.now().isoformat()
+            })
+        }
         
     except Exception as e:
-        return jsonify({'error': f'Chat processing failed: {str(e)}'}), 500
+        return {
+            'statusCode': 500,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            },
+            'body': json.dumps({'error': f'Chat processing failed: {str(e)}'})
+        }
 
 # For Vercel
-def main(request):
-    return handler(request)
+def main(event, context):
+    return handler(event)

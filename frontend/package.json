@@ -15,7 +15,10 @@
     "react-dom": "^19.1.0",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.6.3",
-    "rehype-raw": "^7.0.0"
+    "rehype-raw": "^7.0.0",
+    "chart.js": "^4.4.0",
+    "react-chartjs-2": "^5.2.0",
+    "papaparse": "^5.4.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.30.1",

@@ -1,12 +1,18 @@
 // src/pages/Upload.jsx
 import React, { useState } from "react";
 import { uploadFile } from '../api';
+import { parseCSV, generateChartData, getCategoricalColumns } from '../utils/csvProcessor';
+import ChartDisplay from '../components/ChartDisplay';
 
 const Upload = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [status, setStatus] = useState("");
+  const [csvData, setCsvData] = useState(null);
+  const [chartData, setChartData] = useState(null);
+  const [selectedColumn, setSelectedColumn] = useState("");
+  const [chartType, setChartType] = useState("bar");
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
@@ -15,28 +21,65 @@ const Upload = () => {
       setUploadProgress(0);
       setStatus("");
       setUploading(true);
+      setCsvData(null);
+      setChartData(null);
+      
       try {
-        // Use fetch-based uploadFile utility
-        const res = await uploadFile(file);
-        if (res.error) {
-          setStatus(`Upload failed: ${res.error}`);
-        } else {
+        // Check if it's a CSV file for client-side processing
+        if (file.name.toLowerCase().endsWith('.csv')) {
+          setStatus("Processing CSV file...");
+          const data = await parseCSV(file);
+          setCsvData(data);
+          
+          // Auto-select first categorical column for chart
+          const categoricalCols = getCategoricalColumns(data);
+          if (categoricalCols.length > 0) {
+            setSelectedColumn(categoricalCols[0]);
+            const chart = generateChartData(data, categoricalCols[0], chartType);
+            setChartData(chart);
+          }
+          
           setUploadProgress(100);
-          setStatus("Processing...");
-          // Save uploaded file info to localStorage for Chat page
-          localStorage.setItem('uploadedFile', JSON.stringify({
-            filename: res.filename,
-            format: res.filename.split('.').pop().toUpperCase()
-          }));
-          setTimeout(() => {
-            window.location.href = '/chat';
-          }, 1000);
+          setStatus(`✅ CSV processed successfully! Found ${data.length} rows.`);
+        } else {
+          // For other files, use the API
+          const res = await uploadFile(file);
+          if (res.error) {
+            setStatus(`Upload failed: ${res.error}`);
+          } else {
+            setUploadProgress(100);
+            setStatus("File uploaded successfully!");
+          }
         }
+        
+        // Save uploaded file info to localStorage for Chat page
+        localStorage.setItem('uploadedFile', JSON.stringify({
+          filename: file.name,
+          format: file.name.split('.').pop().toUpperCase(),
+          data: file.name.toLowerCase().endsWith('.csv') ? csvData : null
+        }));
+        
       } catch (err) {
-        setStatus("Upload failed: " + err.message);
+        setStatus("Processing failed: " + err.message);
       } finally {
         setUploading(false);
       }
+    }
+  };
+
+  const handleColumnChange = (column) => {
+    setSelectedColumn(column);
+    if (csvData && column) {
+      const chart = generateChartData(csvData, column, chartType);
+      setChartData(chart);
+    }
+  };
+
+  const handleChartTypeChange = (type) => {
+    setChartType(type);
+    if (csvData && selectedColumn) {
+      const chart = generateChartData(csvData, selectedColumn, type);
+      setChartData(chart);
     }
   };
 
@@ -129,6 +172,99 @@ const Upload = () => {
             )}
             {status && (
               <p className="text-[#9daebe] text-sm font-normal leading-normal pb-3 pt-1 px-4 text-center">Status: {status}</p>
+            )}
+            
+            {/* Chart Generation Section */}
+            {csvData && (
+              <div className="flex flex-col gap-4 p-4 mt-6">
+                <div className="border-t border-[#3d4d5c] pt-6">
+                  <h2 className="text-white text-xl font-bold mb-4">Data Visualization</h2>
+                  
+                  {/* Chart Controls */}
+                  <div className="flex flex-wrap gap-4 mb-6">
+                    <div className="flex flex-col gap-2">
+                      <label className="text-white text-sm font-medium">Column:</label>
+                      <select 
+                        value={selectedColumn} 
+                        onChange={(e) => handleColumnChange(e.target.value)}
+                        className="bg-[#2b3640] text-white border border-[#3d4d5c] rounded-lg px-3 py-2"
+                      >
+                        <option value="">Select a column</option>
+                        {getCategoricalColumns(csvData).map(col => (
+                          <option key={col} value={col}>{col}</option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    <div className="flex flex-col gap-2">
+                      <label className="text-white text-sm font-medium">Chart Type:</label>
+                      <select 
+                        value={chartType} 
+                        onChange={(e) => handleChartTypeChange(e.target.value)}
+                        className="bg-[#2b3640] text-white border border-[#3d4d5c] rounded-lg px-3 py-2"
+                      >
+                        <option value="bar">Bar Chart</option>
+                        <option value="pie">Pie Chart</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  {/* Chart Display */}
+                  {chartData && (
+                    <div className="bg-white rounded-lg p-6 mb-4">
+                      <ChartDisplay 
+                        type={chartType} 
+                        data={chartData} 
+                        title={`Distribution of ${selectedColumn}`} 
+                      />
+                    </div>
+                  )}
+                  
+                  {/* Data Preview */}
+                  <div className="mt-6">
+                    <h3 className="text-white text-lg font-bold mb-3">Data Preview</h3>
+                    <div className="bg-[#1f272e] rounded-lg p-4 overflow-x-auto">
+                      <p className="text-[#9daebe] text-sm mb-2">
+                        Showing first 5 rows of {csvData.length} total rows
+                      </p>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b border-[#3d4d5c]">
+                              {Object.keys(csvData[0] || {}).map(col => (
+                                <th key={col} className="text-white text-left p-2 font-medium">
+                                  {col}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {csvData.slice(0, 5).map((row, idx) => (
+                              <tr key={idx} className="border-b border-[#2b3640]">
+                                {Object.values(row).map((value, colIdx) => (
+                                  <td key={colIdx} className="text-[#9daebe] p-2">
+                                    {String(value)}
+                                  </td>
+                                ))}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Continue to Chat */}
+                  <div className="mt-6 text-center">
+                    <button
+                      onClick={() => window.location.href = '/chat'}
+                      className="bg-[#dce8f3] text-[#141a1f] px-6 py-3 rounded-xl font-bold hover:bg-[#c8d7e8] transition-colors"
+                    >
+                      Continue to Chat Analysis →
+                    </button>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         </div>
