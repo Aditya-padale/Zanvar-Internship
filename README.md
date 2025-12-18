@@ -11,6 +11,7 @@ A web application that provides ChatGPT-like interface for data analysis, calcul
 - 📤 File upload functionality (images, PDFs, CSV, Excel)
 - 🧮 Complex calculations and data insights
 - 📱 Responsive design
+- ☁️ **Serverless deployment ready** (Vercel)
 
 ## Tech Stack
 
