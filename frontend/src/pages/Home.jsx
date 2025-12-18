@@ -1,7 +1,28 @@
 // src/pages/Home.jsx
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { healthCheck } from "../api";
 
 const Home = () => {
+  const [apiStatus, setApiStatus] = useState('checking');
+  
+  useEffect(() => {
+    const checkHealth = async () => {
+      try {
+        const response = await healthCheck();
+        setApiStatus('healthy');
+        console.log('API Health:', response);
+      } catch (error) {
+        setApiStatus('error');
+        console.error('API Health Check Failed:', error);
+      }
+    };
+    
+    checkHealth();
+    // Check every 30 seconds
+    const interval = setInterval(checkHealth, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="relative flex size-full min-h-screen flex-col bg-[#141a1f] dark group/design-root overflow-x-hidden" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>
       <div className="layout-container flex h-full grow flex-col">
@@ -25,6 +46,18 @@ const Home = () => {
               <a className="text-white text-sm font-medium leading-normal" href="#">Resources</a>
             </div>
             <div className="flex gap-2 items-center">
+              {/* API Status Indicator */}
+              <div className="flex items-center gap-2 mr-4">
+                <div className={`w-2 h-2 rounded-full ${
+                  apiStatus === 'healthy' ? 'bg-green-500' : 
+                  apiStatus === 'error' ? 'bg-red-500' : 'bg-yellow-500'
+                }`}></div>
+                <span className="text-white text-xs">
+                  {apiStatus === 'healthy' ? 'API Online' : 
+                   apiStatus === 'error' ? 'API Offline' : 'Checking...'}
+                </span>
+              </div>
+              
               <button className="flex min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-xl h-10 px-4 bg-[#dce8f3] text-[#141a1f] text-sm font-bold leading-normal tracking-[0.015em]">
                 <span className="truncate">Get started</span>
               </button>

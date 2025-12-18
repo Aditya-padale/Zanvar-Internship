@@ -63,16 +63,49 @@ npm start
 
 ```
 chatbot-analytics/
-├── backend/
-│   ├── app.py              # Main Flask application
-│   ├── requirements.txt    # Python dependencies
-│   ├── config/
-│   ├── models/
-│   ├── services/
-│   └── uploads/           # File upload directory
+├── api/                    # Serverless API functions (Vercel)
+│   ├── upload.py          # File upload endpoint
+│   ├── chat.py            # AI chat endpoint
+│   ├── charts.py          # Chart generation
+│   └── health.py          # Health check
+├── backend/               # Original Flask app (for local dev)
+│   ├── app.py            # Main Flask application
+│   ├── requirements.txt  # Python dependencies
+│   └── uploads/          # File upload directory
 ├── frontend/
 │   ├── src/
 │   ├── public/
 │   └── package.json
+├── vercel.json           # Vercel deployment config
+├── requirements.txt      # Serverless dependencies
 └── README.md
+```
+
+## Deployment
+
+### Vercel (Recommended)
+
+This app is configured for serverless deployment on Vercel:
+
+1. **Quick Deploy**: [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new)
+
+2. **Manual Setup**: See detailed guide in [`VERCEL_DEPLOYMENT.md`](./VERCEL_DEPLOYMENT.md)
+
+3. **Environment Variables** (required):
+   - `GOOGLE_API_KEY`: Your Google AI API key
+
+### Local Development
+
+For development, you can still run the original Flask backend:
+
+```bash
+# Backend (Terminal 1)
+cd backend
+pip install -r requirements.txt
+python app.py
+
+# Frontend (Terminal 2)
+cd frontend
+npm install
+npm run dev
 ```

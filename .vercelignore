@@ -1,0 +1,42 @@
+# Development files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.coverage
+.pytest_cache/
+.DS_Store
+.vscode/
+.idea/
+
+# Backend files (not needed for serverless)
+backend/uploads/
+backend/generated_charts/
+backend/__pycache__/
+
+# Sample data
+sample_data/
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# Build files
+frontend/node_modules/
+frontend/dist/
+node_modules/
+
+# Test files
+test_*.py
+*_test.py
